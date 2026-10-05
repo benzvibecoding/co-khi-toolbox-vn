@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { createHmac, timingSafeEqual } from 'node:crypto';
 import { extractTransferCode } from '@/lib/pro/plans';
 
 /** Chong spam webhook: toi da 30 req/phut/IP/instance (best-effort; Vercel Firewall lo DDoS lon). */
@@ -28,30 +29,52 @@ function clientIp(request: NextRequest): string {
 
 /**
  * Webhook SePay — ngan hang bao TIEN VAO.
- * Cau hinh tren sepay.vn (khuyen dung header, vi token trong URL co the lo vao log):
- *   URL: https://domain-cua-ban/api/sepay-webhook
- *   Header: Authorization: Bearer <SEPAY_WEBHOOK_SECRET>
- * (Van ho tro ?token= de tuong thich nguoc.)
+ * Xac thuc 2 lop (dat het la qua):
+ *   1. Chu ky HMAC-SHA256 trong header X-SePay-Signature (khuyen dung):
+ *      signature = HMAC_SHA256(SEPAY_WEBHOOK_SECRET, raw_body).
+ *      Secret nhap 1 lan tren sepay.vn — SePay khong hien lai, phai luu.
+ *   2. Du phong: header "Authorization: Bearer <secret>" hoac ?token=
+ *      (tien test tay, SePay van tuong thich nguoc).
  */
 export async function POST(request: NextRequest) {
   if (isRateLimited(clientIp(request))) {
     return NextResponse.json({ ok: false, error: 'Too many requests.' }, { status: 429 });
   }
 
-  // 1. Xac thuc: uu tien header Authorization (khong lo vao log nhu query param)
+  // 1. Xac thuc: chu ky HMAC-SHA256 uu tien, Bearer/token du phong
   const expected = process.env.SEPAY_WEBHOOK_SECRET;
-  const authHeader = request.headers.get('authorization');
-  const bearer = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
-  const queryToken = request.nextUrl.searchParams.get('token');
-  const provided = bearer ?? queryToken;
-  if (!expected || !provided || provided !== expected) {
+  if (!expected) {
     return NextResponse.json({ ok: false, error: 'Unauthorized.' }, { status: 401 });
   }
 
-  // 2. Parse + validate payload
+  // Doc RAW body (chuoi byte goc) — bat buoc de verify HMAC dung.
+  const rawBody = await request.text();
+
+  const signatureHeader = request.headers.get('x-sepay-signature') ?? '';
+  const signature = signatureHeader.replace(/^sha256=/i, '');
+  let authenticated = false;
+  if (signature) {
+    const computed = createHmac('sha256', expected).update(rawBody, 'utf8').digest('hex');
+    const a = Buffer.from(signature, 'utf8');
+    const b = Buffer.from(computed, 'utf8');
+    // So sanh timing-safe de chong do thoi gian xu ly
+    authenticated = a.length === b.length && timingSafeEqual(a, b);
+  }
+  if (!authenticated) {
+    const authHeader = request.headers.get('authorization');
+    const bearer = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+    const queryToken = request.nextUrl.searchParams.get('token');
+    const provided = bearer ?? queryToken;
+    authenticated = !!provided && provided === expected;
+  }
+  if (!authenticated) {
+    return NextResponse.json({ ok: false, error: 'Unauthorized.' }, { status: 401 });
+  }
+
+  // 2. Parse + validate payload (tu raw body da doc)
   let body: unknown;
   try {
-    body = await request.json();
+    body = JSON.parse(rawBody) as unknown;
   } catch {
     return NextResponse.json({ ok: false, error: 'Invalid JSON.' }, { status: 400 });
   }
