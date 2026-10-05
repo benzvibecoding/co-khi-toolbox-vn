@@ -1,23 +1,50 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { extractTransferCode } from '@/lib/pro/plans';
 
+/** Chong spam webhook: toi da 30 req/phut/IP/instance (best-effort; Vercel Firewall lo DDoS lon). */
+const RATE_LIMIT = 30;
+const WINDOW_MS = 60_000;
+const hits = new Map<string, { count: number; reset: number }>();
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const entry = hits.get(ip);
+  if (!entry || now > entry.reset) {
+    if (hits.size > 1000) hits.clear(); // Chong tran bo nho
+    hits.set(ip, { count: 1, reset: now + WINDOW_MS });
+    return false;
+  }
+  entry.count += 1;
+  return entry.count > RATE_LIMIT;
+}
+
+function clientIp(request: NextRequest): string {
+  return (
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+    request.headers.get('x-real-ip') ??
+    'unknown'
+  );
+}
+
 /**
  * Webhook SePay — ngan hang bao TIEN VAO.
- * Cau hinh tren sepay.vn: URL = https://domain-cua-ban/api/sepay-webhook?token=<SEPAY_WEBHOOK_SECRET>
- *
- * Payload SePay (docs.sepay.vn):
- * { gateway, transactionDate, accountNumber, transferType: 'in'|'out',
- *   transferAmount: number, content: string, referenceCode, description }
- *
- * Luong xu ly: loc tien vao -> tach ma "CKH XXXXXXXX" -> tim don pending
- * khop ma + khop so tien -> duyet don + bat Pro (pro_until theo goi).
- * Idempotent: don khong con pending thi bo qua (SePay co the gui lai).
+ * Cau hinh tren sepay.vn (khuyen dung header, vi token trong URL co the lo vao log):
+ *   URL: https://domain-cua-ban/api/sepay-webhook
+ *   Header: Authorization: Bearer <SEPAY_WEBHOOK_SECRET>
+ * (Van ho tro ?token= de tuong thich nguoc.)
  */
 export async function POST(request: NextRequest) {
-  // 1. Xac thuc webhook bang token bi mat (khong phai ai cung goi duoc)
+  if (isRateLimited(clientIp(request))) {
+    return NextResponse.json({ ok: false, error: 'Too many requests.' }, { status: 429 });
+  }
+
+  // 1. Xac thuc: uu tien header Authorization (khong lo vao log nhu query param)
   const expected = process.env.SEPAY_WEBHOOK_SECRET;
-  const token = request.nextUrl.searchParams.get('token');
-  if (!expected || !token || token !== expected) {
+  const authHeader = request.headers.get('authorization');
+  const bearer = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  const queryToken = request.nextUrl.searchParams.get('token');
+  const provided = bearer ?? queryToken;
+  if (!expected || !provided || provided !== expected) {
     return NextResponse.json({ ok: false, error: 'Unauthorized.' }, { status: 401 });
   }
 
@@ -43,11 +70,9 @@ export async function POST(request: NextRequest) {
   try {
     const { createServiceClient } = await import('@/lib/supabase/service');
     service = createServiceClient();
-  } catch (e) {
-    return NextResponse.json(
-      { ok: false, error: e instanceof Error ? e.message : 'Service misconfigured.' },
-      { status: 500 },
-    );
+  } catch {
+    // Loi cau hinh server — tra ve chung chung, khong lo chi tiet ha tang
+    return NextResponse.json({ ok: false, error: 'Internal error.' }, { status: 500 });
   }
 
   const { data: orders } = await service
@@ -75,16 +100,16 @@ export async function POST(request: NextRequest) {
 
   const { error: orderErr } = await service
     .from('orders')
-    .update({ status: 'approved', decided_at: now, note: `Auto-approved qua SePay (${String(payload.referenceCode ?? '')}).` })
+    .update({ status: 'approved', decided_at: now, note: 'Auto-approved qua SePay.' })
     .eq('id', match.id)
     .eq('status', 'pending'); // Chong race: chi duyet khi van pending
-  if (orderErr) return NextResponse.json({ ok: false, error: orderErr.message }, { status: 500 });
+  if (orderErr) return NextResponse.json({ ok: false, error: 'Internal error.' }, { status: 500 });
 
   const { error: proErr } = await service
     .from('profiles')
     .update({ is_pro: true, pro_since: now, pro_until: proUntil })
     .eq('id', match.user_id);
-  if (proErr) return NextResponse.json({ ok: false, error: proErr.message }, { status: 500 });
+  if (proErr) return NextResponse.json({ ok: false, error: 'Internal error.' }, { status: 500 });
 
   return NextResponse.json({ ok: true, orderId: match.id, proUntil });
 }
