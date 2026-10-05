@@ -35,8 +35,11 @@ export function useProAccess() {
         if (!cancelled) setServerPro(false);
         return;
       }
-      const { data } = await supabase.from('profiles').select('is_pro').eq('id', user.id).single();
-      if (!cancelled) setServerPro((data as { is_pro?: boolean } | null)?.is_pro === true);
+      const { data } = await supabase.from('profiles').select('is_pro, pro_until').eq('id', user.id).single();
+      const row = data as { is_pro?: boolean; pro_until?: string | null } | null;
+      // Pro chi con hieu luc khi chua qua han (pro_until null = goi vinh vien cu).
+      const active = row?.is_pro === true && (!row.pro_until || new Date(row.pro_until).getTime() > Date.now());
+      if (!cancelled) setServerPro(active);
     })();
     return () => {
       cancelled = true;

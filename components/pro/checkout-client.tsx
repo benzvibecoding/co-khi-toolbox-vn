@@ -40,12 +40,17 @@ export function CheckoutClient() {
       .insert({ user_id: user.id, plan: plan.id, amount: plan.amount, method: 'bank_transfer', status: 'pending' })
       .select('id')
       .single();
-    setLoading(false);
     if (err || !data) {
       setError(`Tạo đơn thất bại: ${err?.message ?? 'lỗi không xác định'}. Đảm bảo đã chạy migration 002_orders.sql.`);
+      setLoading(false);
       return;
     }
-    setOrderId((data as { id: string }).id);
+    const newId = (data as { id: string }).id;
+    // Luu ma CK len don de webhook doi chieu (policy 003 cho phep sua don pending)
+    const { getTransferContent } = await import('@/lib/pro/plans');
+    await supabase.from('orders').update({ transfer_content: getTransferContent(newId) }).eq('id', newId);
+    setLoading(false);
+    setOrderId(newId);
   };
 
   if (!plan) return null;

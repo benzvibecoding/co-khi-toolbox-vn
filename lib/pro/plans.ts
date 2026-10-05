@@ -58,6 +58,12 @@ export function getTransferContent(orderId: string): string {
   return `CKH ${orderId.replace(/-/g, '').slice(0, 8).toUpperCase()}`;
 }
 
+/** Trich ma CKH XXXXXXXX tu noi dung chuyen khoan cua ngan hang (tra ve null neu khong co). */
+export function extractTransferCode(content: string): string | null {
+  const m = content.toUpperCase().match(/CKH\s*([A-Z0-9]{8})/);
+  return m?.[1] ?? null;
+}
+
 export type OrderStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
 
 export interface Order {
