@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { Cog, Menu, X } from 'lucide-react';
 import { SearchBar } from '@/components/ui/search-bar';
+import { UserMenu } from '@/components/auth/user-menu';
 import { useUnitSystem } from '@/lib/hooks/useUnitSystem';
 
 /** Header: logo + search + nav + toggle don vi + menu mobile. */
@@ -96,6 +97,7 @@ export function Header({ onMenuClick }: { onMenuClick: () => void }) {
         >
           {system === 'metric' ? 'METRIC' : 'INCH'}
         </button>
+        <UserMenu />
       </div>
       <div className="container-content pb-3 md:hidden">
         <SearchBar />
