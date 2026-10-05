@@ -1,0 +1,147 @@
+import type { CalculatorGroup, CalculatorMeta } from '@/types/calculator';
+
+/** Nhom cong cu — dung cho Sidebar + trang chu (Phase 1: hien thi, Phase 2+ gan page that). */
+export const CALCULATOR_GROUPS: CalculatorGroup[] = [
+  { id: 'cat-got', name: 'Tiện / Phay / Khoan', description: 'Tốc độ cắt, RPM, bước tiến, MRR' },
+  { id: 'ren', name: 'Ren', description: 'Ren hệ mét, UNC/UNF, mũi khoan' },
+  { id: 'dung-sai', name: 'Dung sai lắp ghép', description: 'ISO 286-1, các kiểu lắp H7/g6…' },
+  { id: 'banh-rang', name: 'Bánh răng', description: 'Module, đường kính vòng chia…' },
+  { id: 'luc', name: 'Lực / Áp suất / Ứng suất', description: 'Ứng suất, áp suất, biến dạng' },
+  { id: 'khoi-luong', name: 'Khối lượng', description: 'Thể tích, khối lượng theo vật liệu' },
+  { id: 'don-vi', name: 'Đổi đơn vị', description: 'Dài, tốc độ, lực, áp suất, công suất' },
+];
+
+/** Danh sach cong cu — href khop cau truc thu muc Phase 2/3. */
+export const CALCULATORS: CalculatorMeta[] = [
+  {
+    id: 'toc-do-cat',
+    name: 'Tốc độ cắt',
+    description: 'Tính Vc từ đường kính và RPM',
+    href: '/toc-do-cat',
+    group: 'cat-got',
+    icon: 'gauge',
+    formula: 'Vc = (π × D × n) / 1000',
+  },
+  {
+    id: 'rpm',
+    name: 'Vòng quay trục chính (RPM)',
+    description: 'Tính n từ tốc độ cắt và đường kính',
+    href: '/rpm',
+    group: 'cat-got',
+    icon: 'rotate',
+    formula: 'n = (1000 × Vc) / (π × D)',
+  },
+  {
+    id: 'luong-chay-dao',
+    name: 'Lượng chạy dao',
+    description: 'Tính Vf từ chip load, số lưỡi cắt',
+    href: '/luong-chay-dao',
+    group: 'cat-got',
+    icon: 'move',
+    formula: 'Vf = fz × z × n',
+  },
+  {
+    id: 'chip-load',
+    name: 'Chip Load',
+    description: 'Lượng ăn dao trên mỗi răng',
+    href: '/chip-load',
+    group: 'cat-got',
+    icon: 'slice',
+    formula: 'fz = Vf / (z × n)',
+  },
+  {
+    id: 'mrr',
+    name: 'Tốc độ bóc tách (MRR)',
+    description: 'Lưu lượng phoi bóc tách mỗi phút',
+    href: '/mrr',
+    group: 'cat-got',
+    icon: 'boxes',
+    formula: 'MRR = ap × ae × Vf',
+  },
+  {
+    id: 'thoi-gian-gia-cong',
+    name: 'Thời gian gia công',
+    description: 'Ước lượng thời gian cắt gọt',
+    href: '/thoi-gian-gia-cong',
+    group: 'cat-got',
+    icon: 'timer',
+    formula: 'Tm = L / Vf',
+  },
+  {
+    id: 'cong-suat-cat',
+    name: 'Công suất cắt',
+    description: 'Tính kW từ lực cắt và Vc',
+    href: '/cong-suat-cat',
+    group: 'cat-got',
+    icon: 'zap',
+    formula: 'P = (Fc × Vc) / 60000',
+  },
+  {
+    id: 'mo-men-xoan',
+    name: 'Mô-men xoắn',
+    description: 'Tính từ công suất và RPM',
+    href: '/mo-men-xoan',
+    group: 'cat-got',
+    icon: 'cog',
+    formula: 'T = (P × 9550) / n',
+  },
+  {
+    id: 'luc-ap-suat-ung-suat',
+    name: 'Lực / Áp suất / Ứng suất',
+    description: 'σ = F/A, biến dạng ε',
+    href: '/luc-ap-suat-ung-suat',
+    group: 'luc',
+    icon: 'weight',
+    formula: 'σ = F / A',
+  },
+  {
+    id: 'khoi-luong',
+    name: 'Khối lượng chi tiết',
+    description: 'Tính từ thể tích và khối lượng riêng',
+    href: '/khoi-luong',
+    group: 'khoi-luong',
+    icon: 'box',
+    formula: 'm = V × ρ',
+  },
+  {
+    id: 'chuyen-doi-don-vi',
+    name: 'Chuyển đổi đơn vị',
+    description: 'Dài, lực, áp suất, công suất, mô-men',
+    href: '/chuyen-doi-don-vi',
+    group: 'don-vi',
+    icon: 'repeat',
+    formula: 'mm ⇄ inch, m/min ⇄ ft/min…',
+  },
+  {
+    id: 'ren',
+    name: 'Tra cứu ren',
+    description: 'Bước ren, đường kính, mũi khoan',
+    href: '/ren',
+    group: 'ren',
+    icon: 'nut',
+    formula: 'Drill ≈ D − p',
+  },
+  {
+    id: 'dung-sai',
+    name: 'Dung sai lắp ghép',
+    description: 'Kích thước giới hạn, kiểu lắp',
+    href: '/dung-sai',
+    group: 'dung-sai',
+    icon: 'ruler',
+    formula: 'T = ES − EI',
+  },
+  {
+    id: 'banh-rang',
+    name: 'Bánh răng trụ',
+    description: 'Module, Z, đường kính vòng chia',
+    href: '/banh-rang',
+    group: 'banh-rang',
+    icon: 'gear',
+    formula: 'd = m × z',
+  },
+];
+
+/** Lay cong cu theo nhom (cho Sidebar expand/collapse). */
+export function getCalculatorsByGroup(groupId: string): CalculatorMeta[] {
+  return CALCULATORS.filter((c) => c.group === groupId);
+}
