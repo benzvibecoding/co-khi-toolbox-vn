@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useLocalStorage } from '@/lib/hooks/useLocalStorage';
-import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
 
 /** Cac tinh nang Pro (giai doan 2) — dinh nghia nen tang, chua thu phi o MVP. */
 export enum ProFeature {
@@ -24,11 +23,13 @@ export function useProAccess() {
   const [serverPro, setServerPro] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (!isSupabaseConfigured()) return;
-    const supabase = createClient();
-    if (!supabase) return;
     let cancelled = false;
     (async () => {
+      // Import dong de Supabase khong lot vao bundle chinh.
+      const { createClient, isSupabaseConfigured } = await import('@/lib/supabase/client');
+      if (!isSupabaseConfigured()) return;
+      const supabase = createClient();
+      if (!supabase) return;
       const { data: { user } } = await supabase.auth.getUser();
       if (!user || cancelled) {
         if (!cancelled) setServerPro(false);

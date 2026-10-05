@@ -4,8 +4,14 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { Cog, Menu, X } from 'lucide-react';
 import { SearchBar } from '@/components/ui/search-bar';
-import { UserMenu } from '@/components/auth/user-menu';
+import dynamic from 'next/dynamic';
 import { useUnitSystem } from '@/lib/hooks/useUnitSystem';
+
+// UserMenu keo theo Supabase client — tach chunk, chi tai sau hydration.
+const UserMenu = dynamic(() => import('@/components/auth/user-menu').then((m) => m.UserMenu), {
+  ssr: false,
+  loading: () => <span className="w-20" aria-hidden />,
+});
 
 /** Header: logo + search + nav + toggle don vi + menu mobile. */
 export function Header({ onMenuClick }: { onMenuClick: () => void }) {

@@ -1,8 +1,15 @@
 'use client';
 
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { History, Trash2, X } from 'lucide-react';
 import { useCalculatorHistory } from '@/lib/hooks/useCalculatorHistory';
+
+// Tach chunk Supabase/khách Pro ra khoi bundle chinh — chi tai khi mo lich su.
+const HistoryExportButtons = dynamic(
+  () => import('@/components/pro/history-export-buttons').then((m) => m.HistoryExportButtons),
+  { ssr: false, loading: () => null },
+);
 
 /**
  * Ngan keo lich su phep tinh — lazy render khi mo.
@@ -53,6 +60,12 @@ export function HistoryDrawer({ toolId }: { toolId?: string }) {
               </div>
             </div>
             <div className="flex-1 overflow-y-auto p-4">
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <p className="font-mono text-[0.7rem] text-muted">
+                  {records.length > 0 ? `${records.length} phép tính` : 'Trống'}
+                </p>
+                <HistoryExportButtons records={records} toolId={toolId} />
+              </div>
               {records.length === 0 ? (
                 <p className="text-sm text-muted">Chưa có phép tính nào. Kết quả bạn tính sẽ hiện ở đây.</p>
               ) : (

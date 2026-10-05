@@ -18,6 +18,8 @@ const PROTECTED_PREFIXES = [
   '/dung-sai',
   '/banh-rang',
   '/tai-khoan',
+  '/thanh-toan',
+  '/tinh-hang-loat',
 ];
 
 /** Trang xac thuc — user da login thi da ve trang chu. */

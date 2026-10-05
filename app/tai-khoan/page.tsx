@@ -5,6 +5,7 @@ import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { SectionCard } from '@/components/ui/section-card';
 import { createClient } from '@/lib/supabase/server';
 import { SignOutButton, ChangePasswordForm } from '@/components/auth/account-actions';
+import { OrderHistory } from '@/components/pro/order-history';
 
 export const metadata = {
   title: 'Tài khoản',
@@ -54,6 +55,9 @@ export default async function AccountPage() {
       </SectionCard>
       <SectionCard id="acc-security" title="Bảo mật" description="Đổi mật khẩu định kỳ giúp bảo vệ tài khoản.">
         <ChangePasswordForm />
+      </SectionCard>
+      <SectionCard id="acc-orders" title="Đơn mua Pro" description="Trạng thái duyệt đơn của bạn.">
+        <OrderHistory />
       </SectionCard>
       <div className="flex items-center gap-2 text-sm text-muted">
         <LogOut size={14} aria-hidden />
